@@ -1,4 +1,4 @@
-# Single-Pass Drone Video to 3D Model Generation — SIH 2026 PS 26158
+# GeoTwin_v
 
 **Core novelty: Observation-Aware Reconstruction Confidence** — every reconstructed
 primitive carries a confidence score built from five independently-measurable
