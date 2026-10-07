@@ -1,0 +1,31 @@
+# Conda environment covering both Environment A (CPU sandbox) and, once on a
+# CUDA-capable machine / Colab, Environment B (GPU). Prefer this over
+# requirements.txt if you want a fully pinned, reproducible env; use
+# requirements.txt directly for the fast path (e.g. inside an existing Colab
+# runtime, where recreating the whole env is unnecessary).
+name: sih2026-single-pass-3d
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy>=1.26
+  - scipy>=1.11
+  - scikit-image>=0.22
+  - pandas>=2.0
+  - matplotlib>=3.8
+  - pytest>=7.4
+  - cmake>=3.18
+  - ninja
+  - pip
+  - pip:
+      - opencv-python-headless>=4.9
+      - tabulate>=0.9
+      - open3d>=0.18   # mesh_export.py -- needed in both environments, see requirements.txt
+      # GPU-only extras (Environment B) -- comment out for a CPU-only env:
+      - torch>=2.4
+      - lpips>=0.1.4
+      - pytorch-msssim>=1.0.0
+      - git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git

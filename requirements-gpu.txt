@@ -1,0 +1,20 @@
+# Environment B -- Colab GPU runtime (Layer 3). Install AFTER requirements.txt.
+# Torch itself is already provided by Colab's runtime image; only pin here if
+# a Colab default proves incompatible with the CUDA extension build.
+#
+#   pip install -r requirements.txt
+#   pip install -r requirements-gpu.txt
+#   cd layer3_gpu && python3 setup.py build_ext --inplace
+#   python3 python/colab_smoke_test.py
+#
+# diff-gaussian-rasterization is the EXTERNAL, unmodified differentiable
+# tile rasterizer used by 3DGS/FastGS -- we integrate it rather than
+# reimplement it (see docs/ARCHITECTURE.md, "why we do not reimplement the
+# rasterizer"). Install it from the official repo:
+#   pip install git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git
+#
+# LPIPS requires network access to download pretrained weights, unavailable
+# in Environment A (see layer1_cpu_sandbox/evaluation/metrics_visual.py):
+lpips>=0.1.4
+pytorch-msssim>=1.0.0   # real (non-proxy) MS-SSIM, replaces the CPU sandbox's proxy
+ninja>=1.11              # speeds up torch cpp_extension JIT/AOT builds

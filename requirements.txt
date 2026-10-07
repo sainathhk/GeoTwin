@@ -1,0 +1,12 @@
+# Shared Python dependencies (Colab Python 3.10–3.12).
+# VGGT upstream currently specifies NumPy 1.26.1. Keep this exact: do not
+# uninstall/reinstall NumPy or upgrade it to 2.x in the notebook.
+numpy==1.26.1
+opencv-python-headless==4.11.0.86
+scipy>=1.11,<2
+scikit-image>=0.22
+pandas>=2.0
+matplotlib>=3.8
+tabulate>=0.9
+open3d>=0.18,<0.20
+pytest>=7.4

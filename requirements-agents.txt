@@ -1,0 +1,14 @@
+# Environment C -- optional, only needed for `--use_llm` (Layer 4 real Claude-backed
+# agents). The mock-agent path (default, and everything CPU-tested in this repo) needs
+# NONE of this -- just requirements.txt.
+#
+#   pip install -r requirements.txt
+#   pip install -r requirements-agents.txt
+#   export ANTHROPIC_API_KEY=...
+#   python3 -m layer4_agents.run_agentic_experiment --use_llm
+#
+# Needs outbound network access + a valid ANTHROPIC_API_KEY at run time -- neither is
+# available in the sandbox this repo's Layer 4 code was developed in, so this path is
+# implemented and statically reviewed but NOT executed anywhere in this repository's
+# own test suite. See layer4_agents/llm_agents.py and docs/AGENTIC_ARCHITECTURE.md.
+anthropic>=0.40

@@ -1,0 +1,10 @@
+# Extra packages for the VGGT-based post-training geometry pass.
+# PyTorch and torchvision are intentionally NOT pinned here: Google Colab
+# supplies CUDA-matched builds. Install them from the active Colab runtime.
+# VGGT upstream prerequisite/repository: https://github.com/facebookresearch/vggt
+# Official package instructions: https://github.com/facebookresearch/vggt/blob/main/docs/package.md
+git+https://github.com/facebookresearch/vggt.git
+huggingface_hub>=0.23
+einops>=0.8
+safetensors>=0.4
+Pillow>=10

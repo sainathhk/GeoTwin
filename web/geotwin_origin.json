@@ -1,0 +1,20 @@
+{
+  "schema": "sih-geotwin-origin-v1",
+  "origin_lat": 17.548772,
+  "origin_lon": 78.208918,
+  "source_file": "DJI0004.srt",
+  "source_sample": "first telemetry sample · 2025-05-16 08:56:06.960",
+  "source_rule": "The real-data builder uses log.lat[0] and log.lon[0] as its local ENU origin.",
+  "coordinate_frame": "local ENU metres · X east · Y north · Z up",
+  "alignment_quality": {
+    "median_camera_to_telemetry_residual_m": 1.17,
+    "maximum_camera_to_telemetry_residual_m": 4.42,
+    "claim": "approximate georeferencing; not survey-grade"
+  },
+  "expected_mesh": "Exp2 Poisson depth 12 · density trim 0.01 · remove components under 500 vertices",
+  "expected_mesh_bounds": {
+    "min": [25.738, -197.129, -188.533],
+    "max": [447.463, 178.158, -7.781]
+  },
+  "bounds_tolerance_m": 0.5
+}

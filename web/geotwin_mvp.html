@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GeoTwin MVP — observed and inferred scene</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1118; --panel:#111b25; --line:#263744; --text:#e8eef4; --muted:#9cb0bf; --cyan:#54c8e8; --amber:#ffb547; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,Segoe UI,sans-serif }
+    header { height:64px; padding:10px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:16px }
+    header strong { display:block; font-size:17px }
+    header small,.muted { color:var(--muted) }
+    main { height:calc(100vh - 64px); min-height:560px; display:grid; grid-template-columns:320px minmax(0,1fr) }
+    aside { overflow:auto; background:var(--panel); border-right:1px solid var(--line); padding:14px }
+    #viewport { position:relative; min-width:0; overflow:hidden; background:radial-gradient(ellipse at 50% 45%,#192632,#090e14 75%) }
+    #view { position:absolute; inset:0 }
+    canvas { display:block }
+    .section { padding:0 0 14px; margin:0 0 14px; border-bottom:1px solid var(--line) }
+    h2 { margin:0 0 10px; font-size:14px; color:#c9d8e2 }
+    label { display:block; margin:8px 0 4px; color:var(--muted); font-size:12px }
+    input,select,button { width:100%; min-height:34px; border:1px solid #344957; border-radius:5px; background:#0c141c; color:var(--text); padding:6px 8px; font:inherit }
+    input[type=file] { font-size:12px }
+    button { cursor:pointer; background:#162532 }
+    button:hover { border-color:var(--cyan) }
+    button.active { border-color:var(--cyan); color:var(--cyan); box-shadow:inset 0 0 0 1px var(--cyan) }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+    .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px }
+    .note { color:var(--muted); font-size:11px; margin-top:7px }
+    #status { position:absolute; left:14px; bottom:12px; padding:7px 10px; background:#081018dd; border:1px solid #344957; border-radius:5px; color:#c7d7e2; font-size:12px; pointer-events:none }
+    #legend { position:absolute; right:14px; top:14px; padding:9px 11px; background:#081018dd; border:1px solid #344957; border-radius:5px; font-size:12px; pointer-events:none }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; background:var(--cyan) }
+    .dot.amber { background:var(--amber) }
+    .dot.fill { background:#86d4bd }
+    #gapFillOverlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1 }
+    #view canvas:first-child { position:relative; z-index:0 }
+    #view .css2d-renderer { z-index:2 }
+    .tag { padding:5px 7px; background:#09131de8; border:1px solid var(--cyan); border-radius:4px; color:#eafaff; white-space:nowrap; font:11px/1.3 ui-monospace,monospace; transform:translateY(-4px); pointer-events:none; text-shadow:0 1px 2px #000 }
+    .tag.inferred { border-color:var(--amber); color:#fff0d2 }
+    #items { max-height:230px; overflow:auto; font-size:11px }
+    .item { display:flex; justify-content:space-between; gap:6px; padding:6px 2px; border-bottom:1px solid #263744 }
+    .item span { overflow-wrap:anywhere }
+    .item button { width:auto; min-height:24px; padding:1px 6px; color:#ffaaa2 }
+    #drop { position:absolute; inset:16px; display:none; place-items:center; border:2px dashed var(--cyan); background:#071019dc; font-size:18px; z-index:5; pointer-events:none }
+    #inferredBadge { position:absolute; right:14px; top:102px; max-width:min(520px,70%); padding:7px 10px; border:1px solid var(--amber); border-radius:5px; background:#2a1c0fe8; color:#ffe0a8; font:11px/1.35 ui-monospace,monospace; letter-spacing:.03em; pointer-events:none }
+    @media(max-width:760px) { main { grid-template-columns:1fr; grid-template-rows:360px minmax(300px,1fr); height:auto } aside { grid-row:2; border-right:0 } #viewport { grid-row:1 } }
+  </style>
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.180.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.180.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <header>
+    <div><strong>GeoTwin — road corridor MVP</strong><small>WGS84 labels · measured surface · explicitly inferred coverage</small></div>
+    <div id="frameBadge" class="muted">Waiting for model and SRT origin</div>
+  </header>
+  <main>
+    <aside>
+      <section class="section">
+        <h2>1 · Load the model and optional flight log</h2>
+        <label for="assetFiles">Choose model; optionally choose its matching DJI SRT/CSV in the same dialog</label>
+        <input id="assetFiles" type="file" accept=".glb,.obj,.srt,.csv,model/gltf-binary,text/plain" multiple>
+        <div class="note">You can also drag the model and log together onto the 3D view. A matching SRT/CSV sets the location automatically. If you only choose the model, this project’s DJI0004 location is used. GLB loads faster; OBJ is supported.</div>
+        <div id="modelStatus" class="note">Use the reviewed <b>trim 0.01 + clean 500</b> model. Inferred patches remain a separate overlay.</div>
+      </section>
+      <section class="section">
+        <h2>2 · Geographic location</h2>
+        <div id="originStatus" class="muted">Loading the matching DJI location reference…</div>
+        <details style="margin-top:8px">
+          <summary class="muted" style="cursor:pointer">Advanced: change location reference</summary>
+          <label for="lat0">Origin latitude</label><input id="lat0" type="number" step="0.0000001" placeholder="loaded automatically">
+          <label for="lon0">Origin longitude</label><input id="lon0" type="number" step="0.0000001" placeholder="loaded automatically">
+          <button id="applyOrigin" style="margin-top:8px">Apply changed origin</button>
+        </details>
+        <div class="note">The matching DJI reference is loaded automatically or read from the selected SRT/CSV. Coordinates are approximate; the camera-to-GPS fit has metre-scale error.</div>
+      </section>
+      <section class="section">
+        <h2>3 · Flight camera viewpoints</h2>
+        <button id="flightViewToggle" disabled>Show drone camera views</button>
+        <div class="row" style="margin-top:8px">
+          <button id="previousCamera" disabled>Previous view</button>
+          <button id="nextCamera" disabled>Next view</button>
+        </div>
+        <div id="cameraViewStatus" class="note">Bundled DJI0004 locations will load automatically; a matching SRT/CSV can replace them.</div>
+        <div class="note">Each view starts from a GPS/altitude sample and looks toward the model. DJI SRT does not contain camera orientation, so the viewing direction is approximate. This shows the flight position, not an exact replay of what the lens saw.</div>
+      </section>
+      <section class="section">
+        <h2>4 · Add geographic landmarks</h2>
+        <label for="labelText">Feature name</label><input id="labelText" value="Building 01" maxlength="48">
+        <label for="kind">Marker type</label>
+        <select id="kind"><option>Building centroid</option><option>Building corner</option><option>Road landmark</option><option>Tree / vegetation</option><option>Manual point of interest</option></select>
+        <button id="landmarkMode">Click model to place landmark</button>
+        <div class="note">Place a pin on a visible roof/footprint point. It records WGS84 latitude/longitude and local Z in the exported GeoJSON.</div>
+      </section>
+      <section class="section">
+        <h2>5 · Fill visible mesh holes</h2>
+        <button id="autoGapFill" style="margin-bottom:6px" disabled>Inferred fill turns on when the model loads</button>
+        <div class="note">After loading, gaps inside the visible model footprint are automatically filled with the mean adjacent surface color and marked in amber. This is a view-only inferred overlay: the OBJ/GLB geometry itself is not changed, and filled areas are not camera-observed.</div>
+        <h3 style="margin:12px 0 4px;font-size:12px;color:#c9d8e2">Optional · place an inferred 3D patch</h3>
+        <label for="patchName">Patch label</label><input id="patchName" value="Inferred fill — not camera observed" maxlength="60">
+        <div class="row">
+          <div><label for="patchSize">Patch width (m)</label><input id="patchSize" type="number" min="1" max="100" value="8" step="1"></div>
+          <div><label for="fallbackZ">Fallback plane Z (m)</label><input id="fallbackZ" type="number" value="0" step="0.5"></div>
+        </div>
+        <button id="setFallbackMode" style="margin-top:8px">Set fallback Z from a road click</button>
+        <button id="patchMode" style="margin-top:8px">Click a gap to add inferred patch</button>
+        <div class="note">The manual amber patch is a separate, flat 3D placeholder. Click a visible surface to place it at that height, or click empty space to use fallback Z. It is never counted as measured mesh.</div>
+      </section>
+      <section class="section">
+        <h2>6 · Review and export</h2>
+        <div class="row"><button id="exportGeo">Download GeoJSON</button><button id="exportSession">Download session JSON</button></div>
+        <label for="importSession">Load saved session JSON</label><input id="importSession" type="file" accept=".json,application/json">
+        <div class="note">GeoJSON contains point landmarks and inferred patch footprints with status metadata. Keep it with the GLB; the GLB alone does not encode this local WGS84 transform.</div>
+      </section>
+      <section><h2>Placed annotations</h2><div id="items" class="muted">No annotations yet.</div></section>
+    </aside>
+    <section id="viewport"><div id="view"></div><div id="legend"><div><i class="dot"></i>Observed model surface</div><div><i class="dot fill"></i>Automatic inferred view fill · adjacent-color mean</div><div><i class="dot amber"></i>Manual inferred 3D patch</div></div><div id="inferredBadge">INFERRED VIEW FILL · WAITING FOR MODEL</div><div id="status">Choose a model, optionally add its DJI log, then place annotations.</div><div id="drop">Drop the model and optional matching SRT/CSV</div></section>
+  </main>
+  <script type="module" src="./geotwin_mvp.js"></script>
+</body>
+</html>
